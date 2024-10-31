@@ -19,6 +19,6 @@ func Run(adress string) error {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		HandleConnection(&conn)
+		go HandleConnection(&conn)
 	}
 }
