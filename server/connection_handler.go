@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 )
 
 var (
@@ -21,7 +22,7 @@ func HandleConnection(conn *net.Conn) {
 	}
 
 	greeting(name, joinedStatus)
-	(*conn).Write([]byte("[" + name + "]:"))
+	(*conn).Write(getPrfix(name))
 	chat(name, conn)
 }
 
@@ -100,7 +101,8 @@ func chat(name string, conn *net.Conn) {
 		Users.Unlock()
 		brodcast(name, msg, true)
 	} else {
-		(*conn).Write([]byte("\033[F[" + name + "]:"))
+		(*conn).Write([]byte("\033[F\033[K"))
+		(*conn).Write([]byte(getPrfix(name)))
 	}
 
 	chat(name, conn)
@@ -112,26 +114,20 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 	if msgPrefix && !validMsg(msg) {
 		(*Users.list[name]).Write([]byte("\033[F\033[K"))
 		(*Users.list[name]).Write([]byte("invalid msg\n"))
-		(*Users.list[name]).Write([]byte("[" + name + "]:"))
+		(*Users.list[name]).Write(getPrfix(name))
 		Users.Unlock()
 		return
 	}
 
 	for user, userConn := range Users.list {
+		(*userConn).Write([]byte{'\n'})
+		(*userConn).Write([]byte("\033[F\033[K"))
 		if msgPrefix {
-			if user != name {
-				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[K"))
-			}
-			(*userConn).Write([]byte("[" + name + "]:"))
+			(*Users.list[name]).Write(getPrfix(name))
 		}
 		if user != name {
-			if !msgPrefix {
-				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[K"))
-			}
 			(*userConn).Write(msg)
-			(*userConn).Write([]byte("[" + user + "]:"))
+			(*Users.list[name]).Write(getPrfix(user))
 		}
 	}
 	Users.Unlock()
@@ -168,4 +164,8 @@ func validMsg(message []byte) bool {
 		}
 	}
 	return true
+}
+
+func getPrfix(name string) []byte {
+	return []byte("[" + time.Now().Format(time.DateTime) + "][" + name + "]:")
 }
