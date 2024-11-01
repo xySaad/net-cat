@@ -126,6 +126,10 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 			(*userConn).Write([]byte("[" + name + "]:"))
 		}
 		if user != name {
+			if !msgPrefix {
+				(*userConn).Write([]byte{'\n'})
+				(*userConn).Write([]byte("\033[F\033[K"))
+			}
 			(*userConn).Write(msg)
 			(*userConn).Write([]byte("[" + user + "]:"))
 		}
@@ -147,6 +151,9 @@ func greeting(name, status string) {
 
 func validUsername(name string) bool {
 	for _, char := range name {
+		if char == 27 {
+			return false
+		}
 		if (!(char >= 'a' && char <= 'z') && !(char >= 'A' && char <= 'z')) && !(char >= '0' && char <= '9') {
 			return false
 		}
