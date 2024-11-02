@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -54,7 +55,7 @@ func login(conn *net.Conn) (string, bool) {
 		return login(conn)
 	} else {
 		if !validUsername(name) {
-			(*conn).Write([]byte("the username " + name + " is invalid\n[ENTER YOUR NAME]:"))
+			(*conn).Write([]byte("the username " + strings.ReplaceAll(name, "27", "^[") + " is invalid\n[ENTER YOUR NAME]:"))
 			return login(conn)
 		}
 	}
