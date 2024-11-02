@@ -108,26 +108,30 @@ func chat(name string, conn *net.Conn) {
 	chat(name, conn)
 }
 
-func brodcast(name string, msg []byte, hasPrefix bool) {
+func brodcast(name string, msg []byte, msgPrefix bool) {
 	Users.Lock()
-
-	if hasPrefix && !validMsg(msg) {
+	if msgPrefix && !validMsg(msg) {
 		(*Users.list[name]).Write([]byte("\033[F\033[K"))
 		(*Users.list[name]).Write([]byte("invalid msg\n"))
 		(*Users.list[name]).Write(getPrefix(name))
 		Users.Unlock()
 		return
 	}
-
 	for user, userConn := range Users.list {
-		(*userConn).Write([]byte{'\n'})
-		(*userConn).Write([]byte("\033[F\033[K"))
-		if hasPrefix {
-			(*Users.list[name]).Write(getPrefix(name))
+		if msgPrefix {
+			if user != name {
+				(*userConn).Write([]byte{'\n'})
+				(*userConn).Write([]byte("\033[F\033[K"))
+			}
+			(*userConn).Write(getPrefix(name))
 		}
 		if user != name {
+			if !msgPrefix {
+				(*userConn).Write([]byte{'\n'})
+				(*userConn).Write([]byte("\033[F\033[K"))
+			}
 			(*userConn).Write(msg)
-			(*Users.list[name]).Write(getPrefix(user))
+			(*userConn).Write(getPrefix(user))
 		}
 	}
 	Users.Unlock()
