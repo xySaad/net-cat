@@ -18,7 +18,7 @@ func HandleConnection(conn *net.Conn) {
 	(*conn).Write([]byte("\033[2J\033[3J\033[H"))
 	(*conn).Write([]byte(Bitri9))
 
-	name, ok := login(conn)
+	name, ok := login(conn, 0)
 	if !ok {
 		return
 	}
@@ -28,7 +28,12 @@ func HandleConnection(conn *net.Conn) {
 	chat(name, conn)
 }
 
-func login(conn *net.Conn) (string, bool) {
+func login(conn *net.Conn, attempts int) (string, bool) {
+	if attempts > 6 {
+		(*conn).Write([]byte("\033[2K\033[Gtoo many attempts"))
+		(*conn).Close()
+		return "", false
+	}
 	buffer := make([]byte, 140)
 	nameB := []byte{}
 
@@ -50,14 +55,16 @@ func login(conn *net.Conn) (string, bool) {
 	}
 
 	name := string(nameB[:len(nameB)-1])
-
+	if attempts > 0 {
+		(*conn).Write([]byte("\033[2F\033[2K"))
+	}
 	if len(name) == 0 {
 		(*conn).Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
-		return login(conn)
+		return login(conn, attempts+1)
 	} else {
 		if !validUsername(name) {
 			(*conn).Write([]byte("the username " + strings.ReplaceAll(name, string(27), "^[") + " is invalid\n[ENTER YOUR NAME]:"))
-			return login(conn)
+			return login(conn, attempts+1)
 		}
 	}
 
@@ -67,7 +74,7 @@ func login(conn *net.Conn) (string, bool) {
 
 	if ok {
 		(*conn).Write([]byte("the username " + name + " already used\n[ENTER YOUR NAME]:"))
-		return login(conn)
+		return login(conn, attempts+1)
 	}
 	Users.Lock()
 	Users.list[name] = conn
@@ -99,7 +106,7 @@ func chat(name string, conn *net.Conn) {
 	if !(len(msg) == 1 && msg[0] == '\n') {
 		brodcast(name, msg, true)
 	} else {
-		(*conn).Write([]byte("\033[F\033[K"))
+		(*conn).Write([]byte("\033[F\033[2K"))
 		(*conn).Write([]byte(getPrefix(name)))
 	}
 
@@ -109,7 +116,7 @@ func chat(name string, conn *net.Conn) {
 func brodcast(name string, msg []byte, msgPrefix bool) {
 	Users.Lock()
 	if msgPrefix && !validMsg(msg) {
-		(*Users.list[name]).Write([]byte("\033[F\033[K"))
+		(*Users.list[name]).Write([]byte("\033[F\033[2K"))
 		(*Users.list[name]).Write([]byte("invalid msg\n"))
 		(*Users.list[name]).Write(getPrefix(name))
 		Users.Unlock()
@@ -120,14 +127,14 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 			if user != name {
 				(*userConn).Write([]byte("\033[s"))
 				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[K"))
+				(*userConn).Write([]byte("\033[F\033[2K"))
 			}
 			(*userConn).Write(getPrefix(name))
 		}
 		if user != name {
 			if !msgPrefix {
 				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[K"))
+				(*userConn).Write([]byte("\033[F\033[2K"))
 			}
 			(*userConn).Write(msg)
 			(*userConn).Write(getPrefix(user))
