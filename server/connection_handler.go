@@ -15,6 +15,7 @@ var (
 )
 
 func HandleConnection(conn *net.Conn) {
+	(*conn).Write([]byte("\033[2J\033[H"))
 	(*conn).Write([]byte(Bitri9))
 
 	name, ok := login(conn)
@@ -96,7 +97,6 @@ func chat(name string, conn *net.Conn) {
 		}
 	}
 	if !(len(msg) == 1 && msg[0] == '\n') {
-
 		brodcast(name, msg, true)
 	} else {
 		(*conn).Write([]byte("\033[F\033[K"))
@@ -118,6 +118,7 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 	for user, userConn := range Users.list {
 		if msgPrefix {
 			if user != name {
+				(*userConn).Write([]byte("\033[s"))
 				(*userConn).Write([]byte{'\n'})
 				(*userConn).Write([]byte("\033[F\033[K"))
 			}
@@ -130,6 +131,9 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 			}
 			(*userConn).Write(msg)
 			(*userConn).Write(getPrefix(user))
+			if msgPrefix {
+				(*userConn).Write([]byte("\033[u\033[B"))
+			}
 		}
 	}
 	Users.Unlock()
