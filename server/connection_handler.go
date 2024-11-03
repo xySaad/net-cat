@@ -15,7 +15,7 @@ var (
 )
 
 func HandleConnection(conn *net.Conn) {
-	(*conn).Write([]byte("\033[2J\033[H"))
+	(*conn).Write([]byte("\033[2J\033[3J\033[H"))
 	(*conn).Write([]byte(Bitri9))
 
 	name, ok := login(conn)
