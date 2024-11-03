@@ -96,10 +96,7 @@ func chat(name string, conn *net.Conn) {
 		}
 	}
 	if !(len(msg) == 1 && msg[0] == '\n') {
-		Users.Lock()
-		Users.lastMessage.msg = string(msg)
-		Users.lastMessage.sender = name
-		Users.Unlock()
+
 		brodcast(name, msg, true)
 	} else {
 		(*conn).Write([]byte("\033[F\033[K"))

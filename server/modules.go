@@ -11,11 +11,7 @@ type usersMap map[string](*net.Conn)
 
 type SafeUsers struct {
 	sync.Mutex
-	list        usersMap
-	lastMessage struct {
-		msg    string
-		sender string
-	}
+	list usersMap
 }
 
 var Users = SafeUsers{list: make(usersMap)}
