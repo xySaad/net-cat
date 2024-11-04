@@ -20,6 +20,8 @@ func HandleConnection(conn *net.Conn) {
 
 	name, ok := login(conn, 0)
 	if !ok {
+		(*conn).Write([]byte("\n[server]: error login"))
+		(*conn).Close()
 		return
 	}
 
