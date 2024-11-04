@@ -26,6 +26,7 @@ func HandleConnection(conn *net.Conn) {
 	}
 
 	greeting(name, joinedStatus)
+	(*conn).Write([]byte("\033[F[ENTER YOUR NAME]:" + name + "\n"))
 	(*conn).Write(getPrefix(name))
 	chat(name, conn)
 }
@@ -58,7 +59,7 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 
 	name := string(nameB[:len(nameB)-1])
 	if attempts > 0 {
-		(*conn).Write([]byte("\033[2F\033[2K"))
+		(*conn).Write([]byte("\033[F\033[2K\033[F\033[2K"))
 	}
 	if len(name) == 0 {
 		(*conn).Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
