@@ -1,4 +1,4 @@
-package server
+package modules
 
 import (
 	"net"
@@ -11,7 +11,7 @@ type usersMap map[string](*net.Conn)
 
 type SafeUsers struct {
 	sync.Mutex
-	list usersMap
+	List usersMap
 }
 
-var Users = SafeUsers{list: make(usersMap)}
+var Users = SafeUsers{List: make(usersMap)}

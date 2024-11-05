@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net-cat/server"
 	"os"
 )
 
@@ -21,7 +20,7 @@ func main() {
 	}
 
 	adress := Address + ":" + Port
-	err := server.Run(adress)
+	err := Run(adress)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return

@@ -1,8 +1,9 @@
-package server
+package main
 
 import (
 	"fmt"
 	"net"
+	"net-cat/utils"
 	"os"
 )
 
@@ -19,6 +20,6 @@ func Run(adress string) error {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		go HandleConnection(&conn)
+		go utils.HandleConnection(&conn)
 	}
 }

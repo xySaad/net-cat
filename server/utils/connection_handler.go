@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"net-cat/modules"
 )
 
 var (
@@ -16,7 +18,7 @@ var (
 
 func HandleConnection(conn *net.Conn) {
 	(*conn).Write([]byte("\033[2J\033[3J\033[H"))
-	(*conn).Write([]byte(Bitri9))
+	(*conn).Write([]byte(modules.Bitri9))
 
 	name, ok := login(conn, 0)
 	if !ok {
@@ -56,7 +58,10 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 			break
 		}
 	}
-
+	if len(nameB) == 0 {
+		(*conn).Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
+		return login(conn, attempts+1)
+	}
 	name := string(nameB[:len(nameB)-1])
 	if attempts > 0 {
 		(*conn).Write([]byte("\033[F\033[2K\033[F\033[2K"))
@@ -71,17 +76,17 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 		}
 	}
 
-	Users.Lock()
-	_, ok := Users.list[name]
-	Users.Unlock()
+	modules.Users.Lock()
+	_, ok := modules.Users.List[name]
+	modules.Users.Unlock()
 
 	if ok {
 		(*conn).Write([]byte("the username " + name + " already used\n[ENTER YOUR NAME]:"))
 		return login(conn, attempts+1)
 	}
-	Users.Lock()
-	Users.list[name] = conn
-	Users.Unlock()
+	modules.Users.Lock()
+	modules.Users.List[name] = conn
+	modules.Users.Unlock()
 
 	return name, true
 }
@@ -94,7 +99,7 @@ func chat(name string, conn *net.Conn) {
 		n, err := (*conn).Read(buffer)
 		if err != nil {
 			if err == io.EOF {
-				delete(Users.list, string(name))
+				delete(modules.Users.List, string(name))
 				greeting(name, leftStatus)
 				return
 			}
@@ -117,15 +122,15 @@ func chat(name string, conn *net.Conn) {
 }
 
 func brodcast(name string, msg []byte, msgPrefix bool) {
-	Users.Lock()
+	modules.Users.Lock()
 	if msgPrefix && !validMsg(msg) {
-		(*Users.list[name]).Write([]byte("\033[F\033[2K"))
-		(*Users.list[name]).Write([]byte("invalid msg\n"))
-		(*Users.list[name]).Write(getPrefix(name))
-		Users.Unlock()
+		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))
+		(*modules.Users.List[name]).Write([]byte("invalid msg\n"))
+		(*modules.Users.List[name]).Write(getPrefix(name))
+		modules.Users.Unlock()
 		return
 	}
-	for user, userConn := range Users.list {
+	for user, userConn := range modules.Users.List {
 		if msgPrefix {
 			if user != name {
 				(*userConn).Write([]byte("\033[s"))
@@ -146,7 +151,7 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 			}
 		}
 	}
-	Users.Unlock()
+	modules.Users.Unlock()
 }
 
 func greeting(name, status string) {
@@ -174,6 +179,9 @@ func validUsername(name string) bool {
 }
 
 func validMsg(message []byte) bool {
+	if len(message) == 0 {
+		return false
+	}
 	for _, char := range string(message) {
 		if char == 27 {
 			return false
