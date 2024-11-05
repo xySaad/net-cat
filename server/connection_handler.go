@@ -26,7 +26,7 @@ func HandleConnection(conn *net.Conn) {
 	}
 
 	greeting(name, joinedStatus)
-	(*conn).Write([]byte("\033[F[ENTER YOUR NAME]:" + name + "\n"))
+	(*conn).Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + name + "\n"))
 	(*conn).Write(getPrefix(name))
 	chat(name, conn)
 }
