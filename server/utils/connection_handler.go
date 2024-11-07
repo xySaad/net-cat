@@ -26,10 +26,9 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
-
-	greeting(name, joinedStatus)
 	(*conn).Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + name + "\n"))
 	(*conn).Write(getPrefix(name))
+	greeting(name, joinedStatus)
 	chat(name, conn)
 }
 
@@ -39,25 +38,15 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 		(*conn).Close()
 		return "", false
 	}
-	buffer := make([]byte, 140)
-	nameB := []byte{}
 
-	for {
-		n, err := (*conn).Read(buffer)
-
-		if err != nil {
-			if err == io.EOF {
-				return "", false
-			}
-			fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
-			break
+	nameB, err := readInput(conn)
+	if err != nil {
+		if err == io.EOF {
+			return "", false
 		}
-
-		nameB = append(nameB, buffer[:n]...)
-		if buffer[n-1] == '\n' {
-			break
-		}
+		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
+
 	if len(nameB) == 0 {
 		(*conn).Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
 		return login(conn, attempts+1)
@@ -92,25 +81,16 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 }
 
 func chat(name string, conn *net.Conn) {
-	buffer := make([]byte, 140)
-	msg := []byte{}
-
-	for {
-		n, err := (*conn).Read(buffer)
-		if err != nil {
-			if err == io.EOF {
-				delete(modules.Users.List, string(name))
-				greeting(name, leftStatus)
-				return
-			}
-			fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
-			break
+	msg, err := readInput(conn)
+	if err != nil {
+		if err == io.EOF {
+			delete(modules.Users.List, string(name))
+			greeting(name, leftStatus)
+			return
 		}
-		msg = append(msg, buffer[:n]...)
-		if buffer[n-1] == '\n' {
-			break
-		}
+		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
+
 	if !(len(msg) == 1 && msg[0] == '\n') {
 		brodcast(name, msg, true)
 	} else {
@@ -192,4 +172,21 @@ func validMsg(message []byte) bool {
 
 func getPrefix(name string) []byte {
 	return []byte("[" + time.Now().Format(time.DateTime) + "][" + name + "]:")
+}
+
+func readInput(conn *net.Conn) ([]byte, error) {
+	buffer := make([]byte, 140)
+	input := []byte{}
+
+	for {
+		n, err := (*conn).Read(buffer)
+		if err != nil {
+			return nil, err
+		}
+		input = append(input, buffer[:n]...)
+		if buffer[n-1] == '\n' {
+			break
+		}
+	}
+	return input, nil
 }
