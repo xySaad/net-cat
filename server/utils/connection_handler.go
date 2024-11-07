@@ -6,14 +6,8 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 
 	"net-cat/modules"
-)
-
-var (
-	joinedStatus = "joined"
-	leftStatus   = "left"
 )
 
 func HandleConnection(conn *net.Conn) {
@@ -28,8 +22,16 @@ func HandleConnection(conn *net.Conn) {
 	}
 	(*conn).Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + name + "\n"))
 	(*conn).Write(getPrefix(name))
-	greeting(name, joinedStatus)
-	chat(name, conn)
+
+	groupName, err := joinGroup(name, conn)
+	if err != nil {
+		(*conn).Close()
+		return
+	}
+	(*conn).Write(getPrefix(name))
+
+	greeting(name, groupName, modules.JoinedStatus)
+	chat(name, groupName, conn)
 }
 
 func login(conn *net.Conn, attempts int) (string, bool) {
@@ -80,28 +82,29 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 	return name, true
 }
 
-func chat(name string, conn *net.Conn) {
+func chat(name, groupName string, conn *net.Conn) {
 	msg, err := readInput(conn)
 	if err != nil {
 		if err == io.EOF {
-			delete(modules.Users.List, string(name))
-			greeting(name, leftStatus)
+			delete(modules.Users.List, name)
+			leaveGroup(groupName, name)
+			greeting(name, groupName, modules.LeftStatus)
 			return
 		}
 		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
 
 	if !(len(msg) == 1 && msg[0] == '\n') {
-		brodcast(name, msg, true)
+		brodcast(name, groupName, msg, true)
 	} else {
 		(*conn).Write([]byte("\033[F\033[2K"))
 		(*conn).Write([]byte(getPrefix(name)))
 	}
 
-	chat(name, conn)
+	chat(name, groupName, conn)
 }
 
-func brodcast(name string, msg []byte, msgPrefix bool) {
+func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	modules.Users.Lock()
 	if msgPrefix && !validMsg(msg) {
 		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))
@@ -110,83 +113,66 @@ func brodcast(name string, msg []byte, msgPrefix bool) {
 		modules.Users.Unlock()
 		return
 	}
-	for user, userConn := range modules.Users.List {
+	modules.Groups.Lock()
+	for _, userName := range modules.Groups.List[groupName] {
+		userConn, ok := modules.Users.List[userName]
+		if !ok {
+			fmt.Println(userName, "is not in the group anymore")
+			continue
+		}
 		if msgPrefix {
-			if user != name {
+			if userName != name {
 				(*userConn).Write([]byte("\033[s"))
 				(*userConn).Write([]byte{'\n'})
 				(*userConn).Write([]byte("\033[F\033[2K"))
 			}
 			(*userConn).Write(getPrefix(name))
 		}
-		if user != name {
+		if userName != name {
 			if !msgPrefix {
 				(*userConn).Write([]byte{'\n'})
 				(*userConn).Write([]byte("\033[F\033[2K"))
 			}
 			(*userConn).Write(msg)
-			(*userConn).Write(getPrefix(user))
+			(*userConn).Write(getPrefix(userName))
 			if msgPrefix {
 				(*userConn).Write([]byte("\033[u\033[B"))
 			}
 		}
 	}
+	modules.Groups.Unlock()
 	modules.Users.Unlock()
 }
 
-func greeting(name, status string) {
+func greeting(name, groupName, status string) {
 	var msg []byte
 
-	if status == leftStatus {
+	if status == modules.LeftStatus {
 		msg = []byte(name + " has left our chat...\n")
-	} else if status == joinedStatus {
+	} else if status == modules.JoinedStatus {
 		msg = []byte(name + " has joined our chat...\n")
 	}
 
-	brodcast(name, msg, false)
+	brodcast(name, groupName, msg, false)
 }
 
-func validUsername(name string) bool {
-	for _, char := range name {
-		if char == 27 {
-			return false
-		}
-		if (!(char >= 'a' && char <= 'z') && !(char >= 'A' && char <= 'z')) && !(char >= '0' && char <= '9') {
-			return false
-		}
+func joinGroup(name string, conn *net.Conn) (string, error) {
+	(*conn).Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
+	groupNameB, err := readInput(conn)
+	if err != nil {
+		return "", err
 	}
-	return true
+	groupName := string(groupNameB)
+	modules.Groups.List[groupName] = append(modules.Groups.List[groupName], name)
+	return groupName, nil
 }
-
-func validMsg(message []byte) bool {
-	if len(message) == 0 {
-		return false
-	}
-	for _, char := range string(message) {
-		if char == 27 {
-			return false
+func leaveGroup(groupName, userName string) {
+	modules.Groups.Lock()
+	defer modules.Groups.Unlock()
+	for i, name := range modules.Groups.List[groupName] {
+		if name == userName {
+			modules.Groups.List[groupName] = append(modules.Groups.List[groupName][:i], modules.Groups.List[groupName][i+1:]...)
+			return
 		}
 	}
-	return true
-}
-
-func getPrefix(name string) []byte {
-	return []byte("[" + time.Now().Format(time.DateTime) + "][" + name + "]:")
-}
-
-func readInput(conn *net.Conn) ([]byte, error) {
-	buffer := make([]byte, 140)
-	input := []byte{}
-
-	for {
-		n, err := (*conn).Read(buffer)
-		if err != nil {
-			return nil, err
-		}
-		input = append(input, buffer[:n]...)
-		if buffer[n-1] == '\n' {
-			break
-		}
-	}
-	return input, nil
 }
