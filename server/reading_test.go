@@ -2,7 +2,6 @@ package main
 
 import (
 	"net"
-	"os"
 	"testing"
 	"time"
 )
@@ -65,5 +64,4 @@ func TestTCPClient(t *testing.T) {
 
 	// Case 4: Send data and then abruptly terminate the client
 	t.Log("Abruptly terminating the client...")
-	os.Exit(0) // This will cause an error on the server when it tries to read
 }
