@@ -87,7 +87,7 @@ func chat(name, groupName string, conn *net.Conn) {
 	if err != nil {
 		if err == io.EOF {
 			delete(modules.Users.List, name)
-			leaveGroup(groupName, name)
+			delete(modules.Groups.List[groupName], name)
 			greeting(name, groupName, modules.LeftStatus)
 			return
 		}
@@ -114,7 +114,7 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 		return
 	}
 	modules.Groups.Lock()
-	for _, userName := range modules.Groups.List[groupName] {
+	for userName := range modules.Groups.List[groupName] {
 		userConn, ok := modules.Users.List[userName]
 		if !ok {
 			fmt.Println(userName, "is not in the group anymore")
@@ -163,16 +163,10 @@ func joinGroup(name string, conn *net.Conn) (string, error) {
 		return "", err
 	}
 	groupName := string(groupNameB)
-	modules.Groups.List[groupName] = append(modules.Groups.List[groupName], name)
-	return groupName, nil
-}
-func leaveGroup(groupName, userName string) {
-	modules.Groups.Lock()
-	defer modules.Groups.Unlock()
-	for i, name := range modules.Groups.List[groupName] {
-		if name == userName {
-			modules.Groups.List[groupName] = append(modules.Groups.List[groupName][:i], modules.Groups.List[groupName][i+1:]...)
-			return
-		}
+	_, ok := modules.Groups.List[groupName]
+	if !ok {
+		modules.Groups.List[groupName] = make(map[string]*struct{})
 	}
+	modules.Groups.List[groupName][name] = nil
+	return groupName, nil
 }

@@ -2,7 +2,7 @@ package modules
 
 import "sync"
 
-type groupsMap map[string][]string
+type groupsMap map[string]map[string]*struct{} // nil value
 
 type SafeGroups struct {
 	sync.Mutex
