@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"net-cat/modules"
 )
@@ -29,8 +30,15 @@ func HandleConnection(conn *net.Conn) {
 		return
 	}
 	(*conn).Write(getPrefix(name))
-
+	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
+	_, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err == nil {
+		chat, _ := os.ReadFile(filename)
+		(*conn).Write(chat)
+		(*conn).Write(getPrefix(name))
+	}
 	greeting(name, groupName, modules.JoinedStatus)
+
 	chat(name, groupName, conn)
 }
 
@@ -94,7 +102,7 @@ func chat(name, groupName string, conn *net.Conn) {
 		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
 	if len(msg) > 2 && strings.HasPrefix(string(msg), string(14)) && validUsername(string(msg[1:len(msg)-1])) {
-		sts := changename(name, string(msg[1:len(msg)-1]), groupName, conn)
+		sts := changeName(name, string(msg[1:len(msg)-1]), groupName, conn)
 		if sts == 0 {
 			name = string(msg[1 : len(msg)-1])
 		}
@@ -110,21 +118,29 @@ func chat(name, groupName string, conn *net.Conn) {
 	chat(name, groupName, conn)
 }
 
-func changename(oldname, newname, grp string, conn *net.Conn) int {
-	if modules.Users.List[newname] != nil {
+func changeName(oldName, newName, groupName string, conn *net.Conn) int {
+	if modules.Users.List[newName] != nil {
 		(*conn).Write([]byte("name already taken\n"))
-		(*conn).Write([]byte(getPrefix(oldname)))
+		(*conn).Write([]byte(getPrefix(oldName)))
 		return 1
 	}
-	delete(modules.Users.List, oldname)
-	delete(modules.Groups.List[grp], oldname)
-	modules.Users.List[newname] = conn
-	modules.Groups.List[grp][newname] = nil
-	brodcast(newname, grp, []byte(oldname+" has changed his name to "+newname+"\n"), true)
+	delete(modules.Users.List, oldName)
+	delete(modules.Groups.List[groupName], oldName)
+	modules.Users.List[newName] = conn
+	modules.Groups.List[groupName][newName] = nil
+	brodcast(newName, groupName, []byte(oldName+" has changed his name to "+newName+"\n"), true)
 	return 0
 }
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
+	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err == nil {
+		if msgPrefix {
+			file.Write(getPrefix(name))
+		}
+		file.Write(msg)
+	}
 	modules.Users.Lock()
 	if msgPrefix && !validMsg(msg) {
 		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))
@@ -166,7 +182,6 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 
 func greeting(name, groupName, status string) {
 	var msg []byte
-
 	if status == modules.LeftStatus {
 		msg = []byte(name + " has left our chat...\n")
 	} else if status == modules.JoinedStatus {
