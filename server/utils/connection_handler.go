@@ -93,15 +93,35 @@ func chat(name, groupName string, conn *net.Conn) {
 		}
 		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
-
-	if !(len(msg) == 1 && msg[0] == '\n') {
+	if len(msg) > 2 && strings.HasPrefix(string(msg), string(14)) && validUsername(string(msg[1:len(msg)-1])) {
+		sts := changename(name, string(msg[1:len(msg)-1]), groupName, conn)
+		if sts == 0 {
+			name = string(msg[1 : len(msg)-1])
+		}
+	} else if len(msg) == 2 && msg[0] == 12 {
+		(*conn).Write([]byte("\033[2J\033[3J\033[H"))
+		(*conn).Write(getPrefix(name))
+	} else if !(len(msg) == 1 && msg[0] == '\n') {
 		brodcast(name, groupName, msg, true)
 	} else {
 		(*conn).Write([]byte("\033[F\033[2K"))
 		(*conn).Write([]byte(getPrefix(name)))
 	}
-
 	chat(name, groupName, conn)
+}
+
+func changename(oldname, newname, grp string, conn *net.Conn) int {
+	if modules.Users.List[newname] != nil {
+		(*conn).Write([]byte("name already taken\n"))
+		(*conn).Write([]byte(getPrefix(oldname)))
+		return 1
+	}
+	delete(modules.Users.List, oldname)
+	delete(modules.Groups.List[grp], oldname)
+	modules.Users.List[newname] = conn
+	modules.Groups.List[grp][newname] = nil
+	brodcast(newname, grp, []byte(oldname+" has changed his name to "+newname+"\n"), true)
+	return 0
 }
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
@@ -152,7 +172,6 @@ func greeting(name, groupName, status string) {
 	} else if status == modules.JoinedStatus {
 		msg = []byte(name + " has joined our chat...\n")
 	}
-
 	brodcast(name, groupName, msg, false)
 }
 

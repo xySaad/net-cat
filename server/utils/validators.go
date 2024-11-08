@@ -1,6 +1,9 @@
 package utils
 
 func validUsername(name string) bool {
+	if len(name) < 3 || len(name) > 11 {
+		return false
+	}
 	for _, char := range name {
 		if char == 27 {
 			return false
@@ -17,7 +20,7 @@ func validMsg(message []byte) bool {
 		return false
 	}
 	for _, char := range string(message) {
-		if char == 27 {
+		if (127 < char || char < 32) && char != 10 {
 			return false
 		}
 	}
