@@ -36,7 +36,7 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Write(chat)
 		(*conn).Write(getPrefix(name))
 	}
-	greeting(name, groupName, modules.JoinedStatus)
+	notify(name, groupName, modules.JoinedStatus)
 
 	chat(name, groupName, conn)
 }
@@ -95,7 +95,7 @@ func chat(name, groupName string, conn *net.Conn) {
 		if err == io.EOF {
 			delete(modules.Users.List, name)
 			delete(modules.Groups.List[groupName], name)
-			greeting(name, groupName, modules.LeftStatus)
+			notify(name, groupName, modules.LeftStatus)
 			return
 		}
 		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
@@ -127,7 +127,7 @@ func changeName(oldName, newName, groupName string, conn *net.Conn) int {
 	delete(modules.Groups.List[groupName], oldName)
 	modules.Users.List[newName] = conn
 	modules.Groups.List[groupName][newName] = nil
-	brodcast(newName, groupName, []byte(oldName+" has changed his name to "+newName+"\n"), true)
+	notify(oldName, groupName, modules.NameChangedStatus, newName)
 	return 0
 }
 
@@ -180,13 +180,26 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	modules.Users.Unlock()
 }
 
-func greeting(name, groupName, status string) {
-	var msg []byte
-	if status == modules.LeftStatus {
-		msg = []byte(name + " has left our chat...\n")
-	} else if status == modules.JoinedStatus {
-		msg = []byte(name + " has joined our chat...\n")
+func notify(name, groupName, status string, extra ...string) {
+	var msgStr string
+
+	switch status {
+	case modules.JoinedStatus:
+		msgStr = name + " has joined our chat..."
+
+	case modules.LeftStatus:
+		msgStr = name + " has left our chat..."
+
+	case modules.NameChangedStatus:
+		msgStr = name + " has changed his name to "
+		if len(extra) > 0 {
+			msgStr += extra[0]
+		}
+
+	default:
 	}
+
+	msg := []byte(msgStr + "\n")
 	brodcast(name, groupName, msg, false)
 }
 
