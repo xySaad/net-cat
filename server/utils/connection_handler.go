@@ -207,6 +207,9 @@ func joinGroup(name string, conn *net.Conn) (string, error) {
 	(*conn).Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
 	groupNameB, err := readInput(conn)
 	if err != nil {
+		if err == io.EOF {
+			delete(modules.Users.List, name)
+		}
 		return "", err
 	}
 	groupName := string(groupNameB)
