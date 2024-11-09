@@ -29,7 +29,7 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
-	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
+	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
 	_, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err == nil {
 		chat, _ := os.ReadFile(filename)
@@ -133,7 +133,7 @@ func changeName(oldName, newName, groupName string, conn *net.Conn) int {
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	valid := validMsg(msg)
-	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
+	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err == nil && valid {
 		if msgPrefix {
