@@ -29,7 +29,6 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
-	(*conn).Write(getPrefix(name))
 	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
 	_, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err == nil {
