@@ -132,16 +132,17 @@ func changeName(oldName, newName, groupName string, conn *net.Conn) int {
 }
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
+	valid := validMsg(msg)
 	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat"
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err == nil {
+	if err == nil && valid {
 		if msgPrefix {
 			file.Write(getPrefix(name))
 		}
 		file.Write(msg)
 	}
 	modules.Users.Lock()
-	if msgPrefix && !validMsg(msg) {
+	if msgPrefix && !valid {
 		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))
 		(*modules.Users.List[name]).Write([]byte("invalid msg\n"))
 		(*modules.Users.List[name]).Write(getPrefix(name))

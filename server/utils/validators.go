@@ -20,7 +20,10 @@ func validMsg(message []byte) bool {
 		return false
 	}
 	for _, char := range string(message) {
-		if (127 < char || char < 32) && char != 10 {
+		if char == 10 {
+			continue
+		}
+		if char < 32 {
 			return false
 		}
 	}
