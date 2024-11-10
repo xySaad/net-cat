@@ -8,7 +8,7 @@ func validUsername(name string) bool {
 		if char == 27 {
 			return false
 		}
-		if (!(char >= 'a' && char <= 'z') && !(char >= 'A' && char <= 'z')) && !(char >= '0' && char <= '9') {
+		if (!(char >= 'a' && char <= 'z') && !(char >= 'A' && char <= 'Z')) && !(char >= '0' && char <= '9') {
 			return false
 		}
 	}
