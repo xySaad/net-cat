@@ -105,7 +105,7 @@ func chat(name, groupName string, conn *net.Conn) {
 		if nameb != "" {
 			name = nameb
 		}
-	} else if !(len(msg) == 1 && msg[0] == '\n') {
+	} else if len(msg) > 0 {
 		brodcast(name, groupName, msg, true)
 	} else {
 		(*conn).Write([]byte("\033[F\033[2K"))
@@ -137,6 +137,9 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 			file.Write(getPrefix(name))
 		}
 		file.Write(msg)
+		if msgPrefix {
+			file.Write([]byte{'\n'})
+		}
 	}
 	modules.Users.Lock()
 	if msgPrefix && !valid {
@@ -167,6 +170,9 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 				(*userConn).Write([]byte("\033[F\033[2K"))
 			}
 			(*userConn).Write(msg)
+			if msgPrefix {
+				(*userConn).Write([]byte{'\n'})
+			}
 			(*userConn).Write(getPrefix(userName))
 			if msgPrefix {
 				(*userConn).Write([]byte("\033[u\033[B"))
@@ -220,7 +226,7 @@ func joinGroup(name string, conn *net.Conn) (string, error) {
 }
 
 func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string, bool) {
-	if len(msg) != 2 {
+	if len(msg) != 1 {
 		return "", false
 	}
 	if msg[0] == 8 {
