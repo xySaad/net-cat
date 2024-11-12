@@ -3,8 +3,9 @@ package main
 import (
 	"fmt"
 	"net"
-	"net-cat/utils"
 	"os"
+
+	"net-cat/utils"
 )
 
 func Run(adress string) error {
@@ -13,7 +14,7 @@ func Run(adress string) error {
 		return err
 	}
 	fmt.Println("server running on:", adress)
-
+	os.MkdirAll("./logs/", 0o777)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

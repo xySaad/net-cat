@@ -12,4 +12,7 @@ type SafeUsers struct {
 	List usersMap
 }
 
-var Users = SafeUsers{List: make(usersMap)}
+var (
+	Comands = "CTRL + L ===> clear the page\nCTRL + N  ===> option to change your name\nCTRL + H ===> shows all available comands \nCTRL + O ==> shows all online members in the group\nCTRL + E ===> restore chat\n"
+	Users   = SafeUsers{List: make(usersMap)}
+)

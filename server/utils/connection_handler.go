@@ -100,14 +100,11 @@ func chat(name, groupName string, conn *net.Conn) {
 		}
 		fmt.Fprintln(os.Stderr, "error reading from:", (*conn).RemoteAddr().String())
 	}
-	if len(msg) > 2 && strings.HasPrefix(string(msg), string(14)) && validUsername(string(msg[1:len(msg)-1])) {
-		sts := changeName(name, string(msg[1:len(msg)-1]), groupName, conn)
-		if sts == 0 {
-			name = string(msg[1 : len(msg)-1])
+	nameb, ok := comands(conn, &name, msg, groupName)
+	if ok {
+		if nameb != "" {
+			name = nameb
 		}
-	} else if len(msg) == 2 && msg[0] == 12 {
-		(*conn).Write([]byte("\033[2J\033[3J\033[H"))
-		(*conn).Write(getPrefix(name))
 	} else if !(len(msg) == 1 && msg[0] == '\n') {
 		brodcast(name, groupName, msg, true)
 	} else {
@@ -205,6 +202,7 @@ func notify(name, groupName, status string, extra ...string) {
 
 func joinGroup(name string, conn *net.Conn) (string, error) {
 	(*conn).Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
+	
 	groupNameB, err := readInput(conn)
 	if err != nil {
 		if err == io.EOF {
@@ -219,4 +217,48 @@ func joinGroup(name string, conn *net.Conn) (string, error) {
 	}
 	modules.Groups.List[groupName][name] = nil
 	return groupName, nil
+}
+
+func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string, bool) {
+	if len(msg) != 2 {
+		return "", false
+	}
+	if msg[0] == 8 {
+		(*conn).Write([]byte(modules.Comands))
+		(*conn).Write(getPrefix((*name)))
+		return "", true
+	} else if msg[0] == 14 {
+		(*conn).Write([]byte("enter your new name: "))
+		newName, err := readInput(conn)
+		if err != nil {
+			(*conn).Write([]byte("an err has occured while changing name"))
+		}
+		sts := changeName((*name), string(newName[:len(newName)-1]), groupName, conn)
+		if sts == 0 {
+			return string(newName[:len(newName)-1]), true
+		}
+		return "", true
+	} else if msg[0] == 12 {
+		(*conn).Write([]byte("\033[2J\033[3J\033[H"))
+		(*conn).Write(getPrefix((*name)))
+		return "", true
+	} else if msg[0] == 15 {
+		(*conn).Write([]byte("current online members in your group:\n"))
+		for v := range modules.Groups.List[groupName] {
+			(*conn).Write([]byte(v + "\n"))
+		}
+		(*conn).Write(getPrefix((*name)))
+		return "", true
+	} else if msg[0] == 5 {
+		filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
+		_, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o777)
+		if err == nil {
+			(*conn).Write([]byte("\033[2J\033[3J\033[H"))
+			chat, _ := os.ReadFile(filename)
+			(*conn).Write(chat)
+			(*conn).Write(getPrefix((*name)))
+		}
+		return "", true
+	}
+	return "", false
 }
