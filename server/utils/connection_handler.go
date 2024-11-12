@@ -29,7 +29,7 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
-	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
+	filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
 	_, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err == nil {
 		chat, _ := os.ReadFile(filename)
@@ -60,7 +60,7 @@ func login(conn *net.Conn, attempts int) (string, bool) {
 		(*conn).Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
 		return login(conn, attempts+1)
 	}
-	name := string(nameB[:len(nameB)-1])
+	name := string(nameB)
 	if attempts > 0 {
 		(*conn).Write([]byte("\033[F\033[2K\033[F\033[2K"))
 	}
@@ -130,7 +130,7 @@ func changeName(oldName, newName, groupName string, conn *net.Conn) int {
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	valid := validMsg(msg)
-	filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
+	filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err == nil && valid {
 		if msgPrefix {
@@ -202,7 +202,7 @@ func notify(name, groupName, status string, extra ...string) {
 
 func joinGroup(name string, conn *net.Conn) (string, error) {
 	(*conn).Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
-	
+
 	groupNameB, err := readInput(conn)
 	if err != nil {
 		if err == io.EOF {
@@ -233,9 +233,9 @@ func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string
 		if err != nil {
 			(*conn).Write([]byte("an err has occured while changing name"))
 		}
-		sts := changeName((*name), string(newName[:len(newName)-1]), groupName, conn)
+		sts := changeName((*name), string(newName), groupName, conn)
 		if sts == 0 {
-			return string(newName[:len(newName)-1]), true
+			return string(newName), true
 		}
 		return "", true
 	} else if msg[0] == 12 {
@@ -250,7 +250,7 @@ func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string
 		(*conn).Write(getPrefix((*name)))
 		return "", true
 	} else if msg[0] == 5 {
-		filename := groupName[:len(groupName)-1] + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
+		filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
 		_, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o777)
 		if err == nil {
 			(*conn).Write([]byte("\033[2J\033[3J\033[H"))

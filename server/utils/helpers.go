@@ -23,5 +23,5 @@ func readInput(conn *net.Conn) ([]byte, error) {
 			break
 		}
 	}
-	return input, nil
+	return input[:len(input)-1], nil
 }
