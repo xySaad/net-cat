@@ -8,4 +8,4 @@ var (
 	NameChangedStatus = "nameChanged"
 )
 
-var Comands = "CTRL + L ===> clear the page\nCTRL + N  ===> option to change your name\nCTRL + H ===> shows all available comands \nCTRL + O ==> shows all online members in the group\nCTRL + E ===> restore chat\n"
+var Comands = "\033[1m\033[32mCTRL + L ===> clear the page\nCTRL + N  ===> option to change your name\nCTRL + H ===> shows all available comands \nCTRL + O ==> shows all online members in the group\nCTRL + E ===> restore chat\n\033[0m"
