@@ -33,7 +33,7 @@ func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string
 		return "", false
 	}
 	if msg[0] == 8 {
-		(*conn).Write([]byte(modules.Comands))
+		(*conn).Write([]byte(modules.Commands))
 		(*conn).Write(getPrefix((*name)))
 		return "", true
 	} else if msg[0] == 14 {
