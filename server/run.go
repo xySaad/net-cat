@@ -13,8 +13,8 @@ func Run(adress string) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println("server running on:", adress)
-	os.MkdirAll("./logs/", 0o777)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

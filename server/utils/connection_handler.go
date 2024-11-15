@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net-cat/modules"
 	"os"
 	"strings"
-	"time"
-
-	"net-cat/modules"
 )
 
 func HandleConnection(conn *net.Conn) {
@@ -21,6 +19,7 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
+
 	(*conn).Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + name + "\n"))
 	(*conn).Write(getPrefix(name))
 
@@ -29,15 +28,31 @@ func HandleConnection(conn *net.Conn) {
 		(*conn).Close()
 		return
 	}
-	filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
-	_, err = os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err == nil {
-		chat, _ := os.ReadFile(filename)
-		(*conn).Write(chat)
-		(*conn).Write(getPrefix(name))
-	}
-	notify(name, groupName, modules.JoinedStatus)
 
+	err = os.MkdirAll("./logs/", 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	file, err := os.OpenFile(getLogsFileName(groupName), os.O_RDONLY, 0644)
+	if err != nil {
+		if os.IsExist(err) {
+			fmt.Println(err)
+			(*conn).Write([]byte("cannot restore chat history"))
+		}
+	} else {
+		defer file.Close()
+		chatHistory, err := io.ReadAll(file)
+		if err != nil {
+			fmt.Println(err)
+			(*conn).Write([]byte("cannot restore chat history"))
+		} else {
+			(*conn).Write(chatHistory)
+		}
+	}
+
+	(*conn).Write(getPrefix(name))
+	notify(name, groupName, modules.JoinedStatus)
 	chat(name, groupName, conn)
 }
 
@@ -130,8 +145,8 @@ func changeName(oldName, newName, groupName string, conn *net.Conn) int {
 
 func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	valid := validMsg(msg)
-	filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	file, err := os.OpenFile(getLogsFileName(groupName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+
 	if err == nil && valid {
 		if msgPrefix {
 			file.Write(getPrefix(name))
@@ -141,6 +156,7 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 			file.Write([]byte{'\n'})
 		}
 	}
+
 	modules.Users.Lock()
 	if msgPrefix && !valid {
 		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))

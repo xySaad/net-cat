@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"fmt"
+	"io"
 	"net"
 	"net-cat/modules"
 	"os"
@@ -59,15 +61,34 @@ func comands(conn *net.Conn, name *string, msg []byte, groupName string) (string
 		(*conn).Write(getPrefix((*name)))
 		return "", true
 	} else if msg[0] == 5 {
-		filename := groupName + "_" + time.Now().Format(time.DateOnly) + ".chat.log"
-		_, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o777)
-		if err == nil {
-			(*conn).Write([]byte("\033[2J\033[3J\033[H"))
-			chat, _ := os.ReadFile(filename)
-			(*conn).Write(chat)
-			(*conn).Write(getPrefix((*name)))
+		err := os.MkdirAll("./logs/", 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		file, err := os.OpenFile(getLogsFileName(groupName), os.O_RDONLY, 0644)
+		if err != nil {
+			if os.IsExist(err) {
+				fmt.Println(err)
+				(*conn).Write([]byte("cannot restore chat history"))
+			}
+		} else {
+			defer file.Close()
+			chatHistory, err := io.ReadAll(file)
+			if err != nil {
+				fmt.Println(err)
+				(*conn).Write([]byte("cannot restore chat history"))
+			} else {
+				(*conn).Write([]byte("\033[2J\033[3J\033[H"))
+				(*conn).Write(chatHistory)
+				(*conn).Write(getPrefix(*name))
+			}
 		}
 		return "", true
 	}
 	return "", false
+}
+
+func getLogsFileName(groupName string) string {
+	return "./logs/" + groupName + ".chat.log"
 }
