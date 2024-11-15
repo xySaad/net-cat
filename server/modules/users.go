@@ -1,11 +1,10 @@
 package modules
 
 import (
-	"net"
 	"sync"
 )
 
-type usersMap map[string](*net.Conn)
+type usersMap map[string](*Connection)
 
 type SafeUsers struct {
 	sync.Mutex

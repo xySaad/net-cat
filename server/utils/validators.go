@@ -1,6 +1,6 @@
 package utils
 
-func validUsername(name string) bool {
+func ValidUsername(name string) bool {
 	if len(name) < 3 || len(name) > 12 {
 		return false
 	}
@@ -15,7 +15,7 @@ func validUsername(name string) bool {
 	return true
 }
 
-func validMsg(message []byte) bool {
+func ValidMsg(message []byte) bool {
 	if len(message) == 0 {
 		return false
 	}

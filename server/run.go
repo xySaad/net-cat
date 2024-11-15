@@ -5,7 +5,8 @@ import (
 	"net"
 	"os"
 
-	"net-cat/utils"
+	"net-cat/handlers"
+	"net-cat/modules"
 )
 
 func Run(adress string) error {
@@ -21,6 +22,6 @@ func Run(adress string) error {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		go utils.HandleConnection(&conn)
+		go handlers.HandleConnection(&modules.Connection{Conn: conn})
 	}
 }
