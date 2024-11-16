@@ -16,9 +16,13 @@ type Connection struct {
 }
 
 func (conn *Connection) RestoreHistory() {
+	defer conn.Write(utils.GetPrefix(conn.UserName))
+
 	err := os.MkdirAll("./logs/", 0755)
 	if err != nil {
 		fmt.Println(err)
+		conn.Write([]byte("cannot access chat history"))
+		return
 	}
 
 	file, err := os.OpenFile(GetLogsFileName(conn.GroupName), os.O_RDONLY, 0644)
@@ -40,7 +44,6 @@ func (conn *Connection) RestoreHistory() {
 	}
 
 	conn.Write(chatHistory)
-	conn.Write(utils.GetPrefix(conn.UserName))
 }
 
 func (conn *Connection) JoinGroup() {
