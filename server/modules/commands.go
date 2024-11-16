@@ -15,7 +15,7 @@ var Comands = commandsMap{
 		conn.Write([]byte("\033[2J\033[3J\033[H"))
 		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
 	},
-	'R': func(conn *Connection) {
+	'E': func(conn *Connection) {
 		conn.Write([]byte("\033[2J\033[3J\033[H"))
 		conn.RestoreHistory()
 	},
