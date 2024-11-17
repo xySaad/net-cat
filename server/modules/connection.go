@@ -9,13 +9,13 @@ import (
 	"strings"
 )
 
-type Connection struct {
+type User struct {
 	net.Conn
 	GroupName string
 	UserName  string
 }
 
-func (conn *Connection) RestoreHistory() {
+func (conn *User) RestoreHistory() {
 	defer conn.Write(utils.GetPrefix(conn.UserName))
 
 	err := os.MkdirAll("./logs/", 0755)
@@ -46,14 +46,14 @@ func (conn *Connection) RestoreHistory() {
 	conn.Write(chatHistory)
 }
 
-func (conn *Connection) JoinGroup() {
+func (conn *User) JoinGroup() {
 	conn.Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
 
 	groupNameB, err := utils.ReadInput(&conn.Conn)
 
 	if err != nil {
 		if err == io.EOF {
-			delete(Users.List, conn.UserName)
+			Users.DeleteUser(conn.UserName)
 		}
 		conn.Close()
 	}
@@ -72,7 +72,7 @@ func GetLogsFileName(groupName string) string {
 	return "./logs/" + groupName + ".chat.log"
 }
 
-func (conn *Connection) ChangeName() uint8 {
+func (conn *User) ChangeName() uint8 {
 	newNameB, err := utils.ReadInput(&conn.Conn)
 
 	if err != nil {
@@ -80,21 +80,22 @@ func (conn *Connection) ChangeName() uint8 {
 	}
 
 	newName := string(newNameB)
-	if Users.List[newName] != nil {
+	if Users.Get(newName) != nil {
 		conn.Write([]byte("name already taken\n"))
 		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
 		return 1
 	}
 
-	delete(Users.List, conn.UserName)
+	Users.DeleteUser(conn.UserName)
 	delete(Groups.List[conn.GroupName], conn.UserName)
-	Users.List[newName] = conn
+
+	Users.AddUser(newName, conn)
 	Groups.List[conn.GroupName][newName] = nil
 	// notify(conn.UserName, conn.GroupName, NameChangedStatus, newName)
 	return 0
 }
 
-func (conn *Connection) Login(attempts uint8) (string, bool) {
+func (conn *User) Login(attempts uint8) (string, bool) {
 	if attempts > 6 {
 		conn.Write([]byte("\033[2K\033[Gtoo many attempts"))
 		conn.Close()
@@ -127,18 +128,12 @@ func (conn *Connection) Login(attempts uint8) (string, bool) {
 		}
 	}
 
-	Users.Lock()
-	_, ok := Users.List[name]
-	Users.Unlock()
+	status := Users.AddUser(name, conn)
 
-	if ok {
+	if status == 1 {
 		conn.Write([]byte("the username " + name + " already used\n[ENTER YOUR NAME]:"))
 		return conn.Login(attempts + 1)
 	}
-	Users.Lock()
-	conn.UserName = name
-	Users.List[name] = conn
-	Users.Unlock()
 
 	return name, true
 }

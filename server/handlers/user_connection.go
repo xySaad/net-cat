@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func HandleConnection(conn *modules.Connection) {
+func HandleConnection(conn *modules.User) {
 	conn.Write([]byte("\033[2J\033[3J\033[H"))
 	conn.Write([]byte(modules.Bitri9))
 
@@ -34,11 +34,11 @@ func HandleConnection(conn *modules.Connection) {
 	}
 }
 
-func chat(name, groupName string, conn *modules.Connection) error {
+func chat(name, groupName string, conn *modules.User) error {
 	msg, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
 		if err == io.EOF {
-			delete(modules.Users.List, name)
+			modules.Users.DeleteUser(name)
 			delete(modules.Groups.List[groupName], name)
 			notify(name, groupName, modules.LeftStatus)
 		} else {

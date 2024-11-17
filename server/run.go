@@ -22,6 +22,6 @@ func Run(adress string) error {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		go handlers.HandleConnection(&modules.Connection{Conn: conn})
+		go handlers.HandleConnection(&modules.User{Conn: conn})
 	}
 }
