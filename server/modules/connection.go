@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net-cat/utils"
 	"os"
 	"strings"
+
+	"net-cat/utils"
 )
 
 type User struct {
@@ -18,17 +19,17 @@ type User struct {
 func (conn *User) RestoreHistory() {
 	defer conn.Write(utils.GetPrefix(conn.UserName))
 
-	err := os.MkdirAll("./logs/", 0755)
+	err := os.MkdirAll("./logs/", 0o755)
 	if err != nil {
 		fmt.Println(err)
 		conn.Write([]byte("cannot access chat history"))
 		return
 	}
 
-	file, err := os.OpenFile(GetLogsFileName(conn.GroupName), os.O_RDONLY, 0644)
+	file, err := os.OpenFile(GetLogsFileName(conn.GroupName), os.O_RDONLY, 0o644)
 	if err != nil {
 		if os.IsExist(err) {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			conn.Write([]byte("cannot access chat history"))
 		}
 		return
@@ -36,7 +37,6 @@ func (conn *User) RestoreHistory() {
 
 	defer file.Close()
 	chatHistory, err := io.ReadAll(file)
-
 	if err != nil {
 		fmt.Println(err)
 		conn.Write([]byte("cannot restore chat history"))
@@ -50,7 +50,6 @@ func (conn *User) JoinGroup() {
 	conn.Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
 
 	groupNameB, err := utils.ReadInput(&conn.Conn)
-
 	if err != nil {
 		if err == io.EOF {
 			Users.DeleteUser(conn.UserName)
@@ -59,12 +58,7 @@ func (conn *User) JoinGroup() {
 	}
 
 	groupName := string(groupNameB)
-	_, ok := Groups.List[groupName]
-	if !ok {
-		Groups.List[groupName] = make(map[string]*struct{})
-	}
-	Groups.List[groupName][conn.UserName] = nil
-	conn.GroupName = groupName
+	Groups.SetGroup(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
 }
 
@@ -74,7 +68,6 @@ func GetLogsFileName(groupName string) string {
 
 func (conn *User) ChangeName() uint8 {
 	newNameB, err := utils.ReadInput(&conn.Conn)
-
 	if err != nil {
 		return 1
 	}
