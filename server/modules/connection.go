@@ -5,7 +5,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"strings"
 
 	"net-cat/utils"
 )
@@ -55,9 +54,26 @@ func (conn *User) JoinGroup() {
 			Users.DeleteUser(conn.UserName)
 		}
 		conn.Close()
+		return
 	}
 
 	groupName := string(groupNameB)
+	status := utils.ValidName(groupName)
+	if status != 0 {
+		if status == 1 {
+			conn.Write([]byte("the group name can be at least 3 characters"))
+		}
+		if status == 2 {
+			conn.Write([]byte("the group name cannot be more than 12 characters"))
+		}
+		if status == 3 {
+			conn.Write([]byte("the group name can only contain alphanumerical characters (a-z_0-9)"))
+		}
+		conn.Write([]byte("\n[ENTER YOUR NAME]:"))
+		conn.JoinGroup()
+		return
+	}
+
 	Groups.SetGroup(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
 }
@@ -97,10 +113,10 @@ func (conn *User) Login(attempts uint8) (string, bool) {
 
 	nameB, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
-		if err == io.EOF {
-			return "", false
+		if err != io.EOF {
+			fmt.Fprintln(os.Stderr, "error reading from1:", conn.RemoteAddr())
 		}
-		fmt.Fprintln(os.Stderr, "error reading from:", conn.RemoteAddr().String())
+		return "", false
 	}
 
 	if len(nameB) == 0 {
@@ -114,15 +130,24 @@ func (conn *User) Login(attempts uint8) (string, bool) {
 	if len(name) == 0 {
 		conn.Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
 		return conn.Login(attempts + 1)
-	} else {
-		if !utils.ValidUsername(name) {
-			conn.Write([]byte("the username " + strings.ReplaceAll(name, string(27), "^[") + " is invalid\n[ENTER YOUR NAME]:"))
-			return conn.Login(attempts + 1)
-		}
 	}
 
-	status := Users.AddUser(name, conn)
+	status := utils.ValidName(name)
+	if status != 0 {
+		if status == 1 {
+			conn.Write([]byte("the username can be at least 3 characters"))
+		}
+		if status == 2 {
+			conn.Write([]byte("the username cannot be more than 12 characters"))
+		}
+		if status == 3 {
+			conn.Write([]byte("the username can only contain alphanumerical characters (a-z_0-9)"))
+		}
+		conn.Write([]byte("\n[ENTER YOUR NAME]:"))
+		return conn.Login(attempts + 1)
+	}
 
+	status = Users.AddUser(name, conn)
 	if status == 1 {
 		conn.Write([]byte("the username " + name + " already used\n[ENTER YOUR NAME]:"))
 		return conn.Login(attempts + 1)
