@@ -91,7 +91,7 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	defer modules.Groups.Unlock()
 
 	for userName := range modules.Groups.List[groupName] {
-		userConn, _ := modules.Users.List[userName]
+		userConn := modules.Users.List[userName]
 
 		if msgPrefix {
 			if userName != name {
