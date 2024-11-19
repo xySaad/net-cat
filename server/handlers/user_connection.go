@@ -3,9 +3,10 @@ package handlers
 import (
 	"fmt"
 	"io"
+	"os"
+
 	"net-cat/modules"
 	"net-cat/utils"
-	"os"
 )
 
 func HandleConnection(conn *modules.User) {
@@ -47,17 +48,12 @@ func chat(name, groupName string, conn *modules.User) error {
 		return err
 	}
 
-	// nameb, ok := comands(conn, &name, msg, groupName)
-	// if ok {
-	// 	if nameb != "" {
-	// 		name = nameb
-	// 	}
-	// } else
 	if len(msg) == 0 {
 		conn.Write([]byte("\033[F\033[2K"))
 		conn.Write([]byte(utils.GetPrefix(name)))
 		return nil
 	}
+
 	if len(msg) == 1 {
 		comand, ok := modules.Comands[msg[0]+64]
 		if ok {
@@ -67,7 +63,6 @@ func chat(name, groupName string, conn *modules.User) error {
 	}
 
 	brodcast(name, groupName, msg, true)
-
 	return nil
 }
 
@@ -78,53 +73,50 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 	if err == nil && valid {
 		if msgPrefix {
 			file.Write(utils.GetPrefix(name))
+			defer file.Write([]byte{'\n'})
 		}
 		file.Write(msg)
-		if msgPrefix {
-			file.Write([]byte{'\n'})
-		}
 	}
 
 	modules.Users.Lock()
+	defer modules.Users.Unlock()
+
 	if msgPrefix && !valid {
-		(*modules.Users.List[name]).Write([]byte("\033[F\033[2K"))
-		(*modules.Users.List[name]).Write([]byte("invalid msg\n"))
+		(*modules.Users.List[name]).Write([]byte("\033[F\033[2Kinvalid msg\n"))
 		(*modules.Users.List[name]).Write(utils.GetPrefix(name))
-		modules.Users.Unlock()
 		return
 	}
+
 	modules.Groups.Lock()
+	defer modules.Groups.Unlock()
+
 	for userName := range modules.Groups.List[groupName] {
-		userConn, ok := modules.Users.List[userName]
-		if !ok {
-			fmt.Println(userName, "is not in the group anymore")
-			continue
-		}
+		userConn, _ := modules.Users.List[userName]
+
 		if msgPrefix {
 			if userName != name {
-				(*userConn).Write([]byte("\033[s"))
-				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[2K"))
+				(*userConn).Write([]byte("\033[s\n\033[F\033[2K"))
 			}
+
 			(*userConn).Write(utils.GetPrefix(name))
 		}
+
 		if userName != name {
+
 			if !msgPrefix {
-				(*userConn).Write([]byte{'\n'})
-				(*userConn).Write([]byte("\033[F\033[2K"))
+				(*userConn).Write([]byte("\n\033[F\033[2K"))
 			}
+
 			(*userConn).Write(msg)
+
 			if msgPrefix {
 				(*userConn).Write([]byte{'\n'})
+				defer (*userConn).Write([]byte("\033[u\033[B"))
 			}
+
 			(*userConn).Write(utils.GetPrefix(userName))
-			if msgPrefix {
-				(*userConn).Write([]byte("\033[u\033[B"))
-			}
 		}
 	}
-	modules.Groups.Unlock()
-	modules.Users.Unlock()
 }
 
 func notify(name, groupName string, status uint8, extra ...string) {
