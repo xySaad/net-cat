@@ -1,15 +1,14 @@
-package main
+package handlers
 
 import (
 	"fmt"
 	"net"
 	"os"
 
-	"net-cat/handlers"
 	"net-cat/modules"
 )
 
-func Run(adress string) error {
+func RunServer(adress string) error {
 	ln, err := net.Listen("tcp", adress)
 	if err != nil {
 		return err
@@ -22,6 +21,6 @@ func Run(adress string) error {
 			fmt.Fprintln(os.Stderr, err)
 			continue
 		}
-		go handlers.HandleConnection(&modules.User{Conn: conn})
+		go HandleConnection(&modules.User{Conn: conn})
 	}
 }
