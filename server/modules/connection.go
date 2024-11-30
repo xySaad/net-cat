@@ -150,10 +150,6 @@ func (conn *User) Login(attempts uint8) (string, bool) {
 		return "", false
 	}
 
-	if len(nameB) == 0 {
-		conn.Write([]byte("empty name is invalid\n[ENTER YOUR NAME]:"))
-		return conn.Login(attempts + 1)
-	}
 	name := string(nameB)
 	if attempts > 0 {
 		conn.Write([]byte("\033[F\033[2K\033[F\033[2K"))
