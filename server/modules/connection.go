@@ -84,8 +84,9 @@ func GetLogsFileName(groupName string) string {
 	return "./logs/" + groupName + ".chat.log"
 }
 
-// go:link handlers_notify notify
-// func notify(name, groupName string, status uint8, extra ...string)
+//go:linkname handlers_notify handlers.notify
+func handlers_notify(name, groupName string, status uint8, extra ...string)
+
 func (conn *User) ChangeName(name *string, try int) uint8 {
 	if try == 5 {
 		conn.Write([]byte("too many attempts...\n"))
@@ -129,7 +130,7 @@ func (conn *User) ChangeName(name *string, try int) uint8 {
 	(*name) = newName
 	Users.AddUser(newName, conn)
 	Groups.List[conn.GroupName][newName] = nil
-	// notify(conn.UserName, conn.GroupName, NameChangedStatus, newName)
+	handlers_notify(conn.UserName, conn.GroupName, NameChangedStatus, newName)
 	conn.Write([]byte(utils.GetPrefix(conn.UserName)))
 	return 0
 }
