@@ -84,7 +84,7 @@ func GetLogsFileName(groupName string) string {
 	return "./logs/" + groupName + ".chat.log"
 }
 
-//go:linkname handlers_notify handlers.notify
+//go:linkname handlers_notify net-cat/handlers.notify
 func handlers_notify(name, groupName string, status uint8, extra ...string)
 
 func (conn *User) ChangeName(name *string, try int) uint8 {
