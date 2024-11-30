@@ -19,7 +19,7 @@ func ValidMsg(message []byte) bool {
 	if len(message) == 0 {
 		return false
 	}
-	for _, char := range string(message) {
+	for _, char := range message {
 		if char == 10 {
 			continue
 		}
