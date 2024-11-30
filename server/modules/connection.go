@@ -5,14 +5,16 @@ import (
 	"io"
 	"net"
 	"os"
+	_ "unsafe"
 
 	"net-cat/utils"
 )
 
 type User struct {
 	net.Conn
-	GroupName string
-	UserName  string
+	GroupName    string
+	UserName     string
+	Changingname bool
 }
 
 func (conn *User) RestoreHistory() {
@@ -82,25 +84,53 @@ func GetLogsFileName(groupName string) string {
 	return "./logs/" + groupName + ".chat.log"
 }
 
-func (conn *User) ChangeName() uint8 {
+// go:link handlers_notify notify
+// func notify(name, groupName string, status uint8, extra ...string)
+func (conn *User) ChangeName(name *string, try int) uint8 {
+	if try == 5 {
+		conn.Write([]byte("too many attempts...\n"))
+		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+		conn.Changingname = false
+		return 1
+	}
+	conn.Write([]byte("Enter your new name: "))
+	conn.Changingname = true
 	newNameB, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
+		conn.Changingname = false
 		return 1
 	}
 
 	newName := string(newNameB)
+	status := utils.ValidName(newName)
+	if status != 0 {
+		conn.Write([]byte("\033[F\033[2K\033[2K"))
+
+		if status == 1 {
+			conn.Write([]byte("the username can be at least 3 characters\n"))
+		}
+		if status == 2 {
+			conn.Write([]byte("the username cannot be more than 12 characters\n"))
+		}
+		if status == 3 {
+			conn.Write([]byte("the username can only contain alphanumerical characters (a-z_0-9)\n"))
+		}
+		conn.ChangeName(name, try+1)
+		return 0
+	}
 	if Users.Get(newName) != nil {
 		conn.Write([]byte("name already taken\n"))
-		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
-		return 1
+		conn.ChangeName(name, try+1)
+		return 0
 	}
 
 	Users.DeleteUser(conn.UserName)
 	delete(Groups.List[conn.GroupName], conn.UserName)
-
+	(*name) = newName
 	Users.AddUser(newName, conn)
 	Groups.List[conn.GroupName][newName] = nil
 	// notify(conn.UserName, conn.GroupName, NameChangedStatus, newName)
+	conn.Write([]byte(utils.GetPrefix(conn.UserName)))
 	return 0
 }
 

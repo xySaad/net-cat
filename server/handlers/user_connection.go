@@ -28,14 +28,15 @@ func HandleConnection(conn *modules.User) {
 
 	notify(name, conn.GroupName, modules.JoinedStatus)
 	for {
-		err := chat(name, conn.GroupName, conn)
+		err := chat(&name, conn.GroupName, conn)
 		if err != nil {
 			break
 		}
 	}
 }
 
-func chat(name, groupName string, conn *modules.User) error {
+func chat(Name *string, groupName string, conn *modules.User) error {
+	name:=(*Name)
 	msg, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
 		if err == io.EOF {
@@ -57,7 +58,7 @@ func chat(name, groupName string, conn *modules.User) error {
 	if len(msg) == 1 {
 		comand, ok := modules.Comands[msg[0]+64]
 		if ok {
-			comand(conn)
+			comand(conn, &name)
 			return nil
 		}
 	}
@@ -99,6 +100,7 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 			}
 
 			(*userConn).Write(utils.GetPrefix(name))
+
 		}
 
 		if userName != name {
@@ -113,8 +115,11 @@ func brodcast(name, groupName string, msg []byte, msgPrefix bool) {
 				(*userConn).Write([]byte{'\n'})
 				defer (*userConn).Write([]byte("\033[u\033[B"))
 			}
-
-			(*userConn).Write(utils.GetPrefix(userName))
+			if userConn.Changingname {
+				(*userConn).Write([]byte("Enter your new name: "))
+			} else {
+				(*userConn).Write(utils.GetPrefix(userName))
+			}
 		}
 	}
 }
