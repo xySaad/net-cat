@@ -4,16 +4,24 @@ import "sync"
 
 type null *struct{}
 
-type groupsMap map[string]map[string]null
+type groupUsers map[string]null
 
-type SafeGroups struct {
+type groups map[string]groupUsers
+
+type safeGroups struct {
 	sync.Mutex
-	List groupsMap
+	List groups
 }
 
-var Groups = SafeGroups{List: make(groupsMap)}
+func (sg *safeGroups) GetGroup(groupName string) groupUsers {
+	sg.Lock()
+	defer sg.Unlock()
+	return sg.List[groupName]
+}
 
-func (groups *SafeGroups) DeleteFromGroup(user *User) {
+var Groups = safeGroups{List: make(groups)}
+
+func (groups *safeGroups) DeleteFromGroup(user *User) {
 	groups.Lock()
 	defer groups.Unlock()
 	_, ok := groups.List[user.GroupName]
@@ -23,7 +31,7 @@ func (groups *SafeGroups) DeleteFromGroup(user *User) {
 	delete(groups.List[user.GroupName], user.UserName)
 }
 
-func (groups *SafeGroups) SetGroup(groupName string, user *User) {
+func (groups *safeGroups) AddUser(groupName string, user *User) {
 	groups.Lock()
 	defer groups.Unlock()
 
