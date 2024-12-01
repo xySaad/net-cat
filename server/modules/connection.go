@@ -76,7 +76,7 @@ func (conn *User) JoinGroup() {
 		return
 	}
 
-	Groups.SetGroup(groupName, conn)
+	Groups.AddUser(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
 }
 
@@ -106,7 +106,6 @@ func (conn *User) ChangeName(name *string, try int) uint8 {
 	status := utils.ValidName(newName)
 	if status != 0 {
 		conn.Write([]byte("\033[F\033[2K\033[2K"))
-
 		if status == 1 {
 			conn.Write([]byte("the username can be at least 3 characters\n"))
 		}
@@ -128,10 +127,12 @@ func (conn *User) ChangeName(name *string, try int) uint8 {
 	Users.DeleteUser(conn.UserName)
 	delete(Groups.List[conn.GroupName], conn.UserName)
 	(*name) = newName
+	conn.UserName = newName
 	Users.AddUser(newName, conn)
 	Groups.List[conn.GroupName][newName] = nil
 	handlers_notify(conn.UserName, conn.GroupName, NameChangedStatus, newName)
 	conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+	conn.Changingname = false
 	return 0
 }
 
