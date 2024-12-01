@@ -36,7 +36,7 @@ func HandleConnection(conn *modules.User) {
 }
 
 func chat(Name *string, groupName string, conn *modules.User) error {
-	name:=(*Name)
+	name := (*Name)
 	msg, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
 		if err == io.EOF {
@@ -58,7 +58,7 @@ func chat(Name *string, groupName string, conn *modules.User) error {
 	if len(msg) == 1 {
 		comand, ok := modules.Comands[msg[0]+64]
 		if ok {
-			comand(conn, &name)
+			comand(conn, Name)
 			return nil
 		}
 	}
