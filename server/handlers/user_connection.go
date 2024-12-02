@@ -129,10 +129,10 @@ func notify(name, groupName string, status uint8, extra ...string) {
 
 	switch status {
 	case modules.JoinedStatus:
-		msgStr = name + " has joined our chat..."
+		msgStr = "\033[38;2;0;184;30m" + name + " has joined our chat..."
 
 	case modules.LeftStatus:
-		msgStr = name + " has left our chat..."
+		msgStr = "\033[38;2;255;0;0m" + name + " has left our chat..."
 
 	case modules.NameChangedStatus:
 		msgStr = name + " has changed his name to "
@@ -143,6 +143,6 @@ func notify(name, groupName string, status uint8, extra ...string) {
 	default:
 	}
 
-	msg := []byte(msgStr + "\n")
+	msg := []byte(msgStr + "\n\033[0m")
 	brodcast(name, groupName, msg, false)
 }
