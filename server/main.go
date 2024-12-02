@@ -2,25 +2,29 @@ package main
 
 import (
 	"fmt"
-	"net-cat/handlers"
 	"os"
+
+	"net-cat/handlers"
 )
 
-var (
+const (
 	Address = "0.0.0.0"
 	Port    = "8989"
 )
 
 func main() {
 	if len(os.Args) > 2 {
-		fmt.Fprintln(os.Stderr, "too many arguments")
+		fmt.Fprintln(os.Stderr, "[USAGE]: ./TCPChat $port")
 		return
 	}
+	adress := Address + ":"
+
 	if len(os.Args) == 2 {
-		Port = os.Args[1]
+		adress += os.Args[1]
+	} else {
+		adress += Port
 	}
 
-	adress := Address + ":" + Port
 	err := handlers.RunServer(adress)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
