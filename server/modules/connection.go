@@ -76,7 +76,7 @@ func (conn *User) JoinGroup() {
 		conn.JoinGroup()
 		return
 	}
-	groupName += "_"+strings.Split(conn.Conn.LocalAddr().String(),":")[1]
+	groupName += "_" + strings.Split(conn.Conn.LocalAddr().String(), ":")[1]
 	Groups.AddUser(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
 }
