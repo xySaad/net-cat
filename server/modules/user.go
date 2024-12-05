@@ -1,19 +1,26 @@
 package modules
 
 import (
+	"net"
 	"sync"
 )
 
-type usersMap map[string](*User)
+type User struct {
+	net.Conn
+	GroupName    string
+	UserName     string
+	Changingname bool
+}
+type UsersMap map[string](*User)
 
 type SafeUsers struct {
-	sync.Mutex
-	List usersMap
+	mu   sync.Mutex
+	List UsersMap
 }
 
 func (u *SafeUsers) AddUser(name string, conn *User) uint8 {
-	u.Lock()
-	defer u.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	_, exist := u.List[name]
 	if exist {
@@ -29,15 +36,15 @@ func (u *SafeUsers) AddUser(name string, conn *User) uint8 {
 }
 
 func (u *SafeUsers) DeleteUser(name string) {
-	u.Lock()
-	defer u.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	delete(u.List, name)
 }
 
 func (u *SafeUsers) Get(name string) *User {
-	u.Lock()
-	defer u.Unlock()
+	u.mu.Lock()
+	defer u.mu.Unlock()
 
 	v, ok := u.List[name]
 
@@ -47,5 +54,3 @@ func (u *SafeUsers) Get(name string) *User {
 
 	return v
 }
-
-var Users = SafeUsers{List: make(usersMap)}
