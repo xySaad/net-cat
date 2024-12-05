@@ -102,11 +102,12 @@ func (s *Server) notify(conn *modules.User, status uint8, extra ...string) {
 		msgStr = "\033[38;2;255;0;0m" + conn.UserName + " has left our chat..."
 
 	case modules.NameChangedStatus:
+		color := "\033[38;2;146;142;210m"
 		msg := " has changed his name to " + conn.UserName
 		if len(extra) > 0 {
-			msgStr = extra[0] + msg
+			msgStr = color + extra[0] + msg
 		} else {
-			msgStr = "someone" + msg
+			msgStr = color + "someone" + msg
 		}
 	default:
 	}
