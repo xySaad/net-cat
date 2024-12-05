@@ -21,7 +21,7 @@ type User struct {
 func (conn *User) RestoreHistory() {
 	defer conn.Write(utils.GetPrefix(conn.UserName))
 
-	err := os.MkdirAll("./logs/", 0o755)
+	err := os.MkdirAll("./history/", 0o755)
 	if err != nil {
 		fmt.Println(err)
 		conn.Write([]byte("cannot access chat history"))
@@ -82,7 +82,7 @@ func (conn *User) JoinGroup() {
 }
 
 func GetLogsFileName(groupName string) string {
-	return "./logs/" + groupName + ".chat.log"
+	return "./history/" + groupName + ".chat.log"
 }
 
 //go:linkname handlers_notify net-cat/handlers.notify
