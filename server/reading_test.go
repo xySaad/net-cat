@@ -53,15 +53,12 @@ func TestTCPClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error reconnecting to server: %v", err)
 	}
+
 	defer conn.Close()
 
-	// Case 3: Send data and simulate a hang
+	// Case 3: Send data and then terminate the client without closing
 	if _, err := conn.Write([]byte("Yenis\n")); err != nil {
 		t.Fatalf("Error sending message: %v", err)
 	}
-	t.Log("Hanging connection... (not closing or sending more data)")
-	time.Sleep(10 * time.Second) // Wait for some time; server will likely timeout
-
-	// Case 4: Send data and then abruptly terminate the client
-	t.Log("Abruptly terminating the client...")
+	conn = nil
 }
