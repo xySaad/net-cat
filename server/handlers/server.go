@@ -56,7 +56,10 @@ func (s *Server) HandleConnection(conn *modules.User) {
 	conn.Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + conn.UserName + "\n"))
 	conn.Write(utils.GetPrefix(conn.UserName))
 
-	s.JoinGroup(conn)
+	joined := s.JoinGroup(conn)
+	if !joined {
+		return
+	}
 	conn.RestoreHistory()
 
 	s.notify(conn, modules.JoinedStatus)

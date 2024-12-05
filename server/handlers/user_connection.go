@@ -116,7 +116,7 @@ func (s *Server) notify(conn *modules.User, status uint8, extra ...string) {
 	s.brodcast(conn, msg, false)
 }
 
-func (s *Server) JoinGroup(conn *modules.User) {
+func (s *Server) JoinGroup(conn *modules.User) bool {
 	conn.Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
 
 	groupNameB, err := utils.ReadInput(&conn.Conn)
@@ -125,7 +125,7 @@ func (s *Server) JoinGroup(conn *modules.User) {
 			s.users.DeleteUser(conn.UserName)
 		}
 		conn.Close()
-		return
+		return false
 	}
 
 	groupName := string(groupNameB)
@@ -141,12 +141,12 @@ func (s *Server) JoinGroup(conn *modules.User) {
 			conn.Write([]byte("the group name can only contain alphanumerical characters (a-z_0-9)"))
 		}
 		conn.Write([]byte("\n[ENTER YOUR NAME]:"))
-		s.JoinGroup(conn)
-		return
+		return s.JoinGroup(conn)
 	}
 	groupName += "_" + strings.Split(conn.Conn.LocalAddr().String(), ":")[1]
 	s.groups.AddUser(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
+	return true
 }
 
 func (s *Server) Login(conn *modules.User, attempts uint8) bool {
