@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"net-cat/modules"
-	"net-cat/utils"
+	"net-cat/server/modules"
+	"net-cat/server/utils"
 )
 
 func (s *Server) chat(conn *modules.User) error {

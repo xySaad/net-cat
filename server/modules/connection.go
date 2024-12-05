@@ -6,7 +6,7 @@ import (
 	"os"
 	_ "unsafe"
 
-	"net-cat/utils"
+	"net-cat/server/utils"
 )
 
 func (conn *User) RestoreHistory() {

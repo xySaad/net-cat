@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"net-cat/handlers"
+	"net-cat/server/handlers"
 )
 
 const (

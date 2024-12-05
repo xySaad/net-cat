@@ -3,8 +3,8 @@ package handlers
 import (
 	"fmt"
 	"net"
-	"net-cat/modules"
-	"net-cat/utils"
+	"net-cat/server/modules"
+	"net-cat/server/utils"
 	"os"
 )
 
