@@ -9,15 +9,15 @@ const CommandList = "\033[1m\033[32mCTRL + L ===> clear the page\nCTRL + N  ===>
 
 type commandsMap map[uint8]func()
 
-func (s *Server) executeCommand(conn *modules.User, command uint8) bool {
+func (s *TCPServer) executeCommand(conn *modules.User, command uint8) bool {
 	var comands = commandsMap{
 		'H': func() {
 			conn.Write([]byte(CommandList))
-			conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+			conn.Write([]byte(utils.GetPrefix(conn.Name)))
 		},
 		'L': func() {
 			conn.Write([]byte("\033[2J\033[3J\033[H"))
-			conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+			conn.Write([]byte(utils.GetPrefix(conn.Name)))
 		},
 		'E': func() {
 			conn.Write([]byte("\033[2J\033[3J\033[H"))
@@ -25,11 +25,11 @@ func (s *Server) executeCommand(conn *modules.User, command uint8) bool {
 		},
 		'O': func() {
 			groupMembers := ""
-			for member := range s.groups.GetGroup(conn.GroupName) {
+			for member := range s.GetGroup(conn.GroupName) {
 				groupMembers += member + "\n"
 			}
 			conn.Write([]byte("online members:\n" + groupMembers))
-			conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+			conn.Write([]byte(utils.GetPrefix(conn.Name)))
 		},
 		'N': func() {
 			s.ChangeName(conn, 0)

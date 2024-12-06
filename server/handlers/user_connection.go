@@ -10,12 +10,12 @@ import (
 	"net-cat/server/utils"
 )
 
-func (s *Server) chat(conn *modules.User) error {
+func (s *TCPServer) chat(conn *modules.User) error {
 	msg, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
 		if err == io.EOF {
-			s.users.DeleteUser(conn.UserName)
-			delete(s.groups.GetGroup(conn.GroupName), conn.UserName)
+			s.DeleteUser(conn.Name)
+			delete(s.GetGroup(conn.GroupName), conn.Name)
 			s.notify(conn, modules.LeftStatus)
 		} else {
 			fmt.Fprintln(os.Stderr, "error reading from:", conn.RemoteAddr().String())
@@ -25,7 +25,7 @@ func (s *Server) chat(conn *modules.User) error {
 
 	if len(msg) == 0 {
 		conn.Write([]byte("\033[F\033[2K"))
-		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+		conn.Write([]byte(utils.GetPrefix(conn.Name)))
 		return nil
 	}
 
@@ -40,37 +40,37 @@ func (s *Server) chat(conn *modules.User) error {
 	return nil
 }
 
-func (s *Server) brodcast(conn *modules.User, msg []byte, msgPrefix bool) {
+func (s *TCPServer) brodcast(conn *modules.User, msg []byte, msgPrefix bool) {
 	valid := utils.ValidMsg(msg)
 	file, err := os.OpenFile(modules.GetLogsFileName(conn.GroupName), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 
 	if err == nil && valid {
 		if msgPrefix {
-			file.Write(utils.GetPrefix(conn.UserName))
+			file.Write(utils.GetPrefix(conn.Name))
 			defer file.Write([]byte{'\n'})
 		}
 		file.Write(msg)
 	}
 
 	if msgPrefix && !valid {
-		s.users.Get(conn.UserName).Write([]byte("\033[F\033[2Kinvalid msg\n"))
-		s.users.Get(conn.UserName).Write(utils.GetPrefix(conn.UserName))
+		s.GetUser(conn.Name).Write([]byte("\033[F\033[2Kinvalid msg\n"))
+		s.GetUser(conn.Name).Write(utils.GetPrefix(conn.Name))
 		return
 	}
 
-	for userName := range s.groups.GetGroup(conn.GroupName) {
-		userConn := s.users.Get(userName)
+	for userName := range s.GetGroup(conn.GroupName) {
+		userConn := s.GetUser(userName)
 
 		if msgPrefix {
-			if userName != conn.UserName {
+			if userName != conn.Name {
 				userConn.Write([]byte("\033[s\n\033[F\033[2K"))
 			}
 
-			userConn.Write(utils.GetPrefix(conn.UserName))
+			userConn.Write(utils.GetPrefix(conn.Name))
 
 		}
 
-		if userName != conn.UserName {
+		if userName != conn.Name {
 
 			if !msgPrefix {
 				userConn.Write([]byte("\n\033[F\033[2K"))
@@ -91,19 +91,19 @@ func (s *Server) brodcast(conn *modules.User, msg []byte, msgPrefix bool) {
 	}
 }
 
-func (s *Server) notify(conn *modules.User, status uint8, extra ...string) {
+func (s *TCPServer) notify(conn *modules.User, status uint8, extra ...string) {
 	var msgStr string
 
 	switch status {
 	case modules.JoinedStatus:
-		msgStr = "\033[38;2;0;184;30m" + conn.UserName + " has joined our chat..."
+		msgStr = "\033[38;2;0;184;30m" + conn.Name + " has joined our chat..."
 
 	case modules.LeftStatus:
-		msgStr = "\033[38;2;255;0;0m" + conn.UserName + " has left our chat..."
+		msgStr = "\033[38;2;255;0;0m" + conn.Name + " has left our chat..."
 
 	case modules.NameChangedStatus:
 		color := "\033[38;2;146;142;210m"
-		msg := " has changed his name to " + conn.UserName
+		msg := " has changed his name to " + conn.Name
 		if len(extra) > 0 {
 			msgStr = color + extra[0] + msg
 		} else {
@@ -116,13 +116,13 @@ func (s *Server) notify(conn *modules.User, status uint8, extra ...string) {
 	s.brodcast(conn, msg, false)
 }
 
-func (s *Server) JoinGroup(conn *modules.User) bool {
+func (s *TCPServer) JoinGroup(conn *modules.User) bool {
 	conn.Write([]byte("\033[G\033[2K[ENTER GROUP NAME]:"))
 
 	groupNameB, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
 		if err == io.EOF {
-			s.users.DeleteUser(conn.UserName)
+			s.DeleteUser(conn.Name)
 		}
 		conn.Close()
 		return false
@@ -144,12 +144,12 @@ func (s *Server) JoinGroup(conn *modules.User) bool {
 		return s.JoinGroup(conn)
 	}
 	groupName += "_" + strings.Split(conn.Conn.LocalAddr().String(), ":")[1]
-	s.groups.AddUser(groupName, conn)
+	s.AddUserToGroup(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
 	return true
 }
 
-func (s *Server) Login(conn *modules.User, attempts uint8) bool {
+func (s *TCPServer) Login(conn *modules.User, attempts uint8) bool {
 	if attempts > 6 {
 		conn.Write([]byte("\033[2K\033[Gtoo many attempts"))
 		conn.Close()
@@ -188,20 +188,20 @@ func (s *Server) Login(conn *modules.User, attempts uint8) bool {
 		return s.Login(conn, attempts+1)
 	}
 
-	status = s.users.AddUser(name, conn)
+	status = s.StoreUser(name, conn)
 	if status == 1 {
 		conn.Write([]byte("the username " + name + " already used\n[ENTER YOUR NAME]:"))
 		return s.Login(conn, attempts+1)
 	}
-	conn.UserName = name
+	conn.Name = name
 
 	return true
 }
 
-func (s *Server) ChangeName(conn *modules.User, try int) uint8 {
+func (s *TCPServer) ChangeName(conn *modules.User, try int) uint8 {
 	if try == 5 {
 		conn.Write([]byte("too many attempts...\n"))
-		conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+		conn.Write([]byte(utils.GetPrefix(conn.Name)))
 		conn.Changingname = false
 		return 1
 	}
@@ -229,20 +229,20 @@ func (s *Server) ChangeName(conn *modules.User, try int) uint8 {
 		s.ChangeName(conn, try+1)
 		return 0
 	}
-	if s.users.Get(newName) != nil {
+	if s.GetUser(newName) != nil {
 		conn.Write([]byte("name already taken\n"))
 		s.ChangeName(conn, try+1)
 		return 0
 	}
 
-	defer s.notify(conn, modules.NameChangedStatus, conn.UserName)
+	defer s.notify(conn, modules.NameChangedStatus, conn.Name)
 
-	s.users.DeleteUser(conn.UserName)
-	s.groups.DeleteFromGroup(conn)
-	conn.UserName = newName
-	s.users.AddUser(newName, conn)
-	s.groups.AddUser(conn.GroupName, conn)
-	conn.Write([]byte(utils.GetPrefix(conn.UserName)))
+	s.DeleteUser(conn.Name)
+	s.DeleteFromGroup(conn)
+	conn.Name = newName
+	s.StoreUser(newName, conn)
+	s.AddUserToGroup(conn.GroupName, conn)
+	conn.Write([]byte(utils.GetPrefix(conn.Name)))
 	conn.Changingname = false
 	return 0
 }

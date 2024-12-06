@@ -10,7 +10,7 @@ import (
 )
 
 func (conn *User) RestoreHistory() {
-	defer conn.Write(utils.GetPrefix(conn.UserName))
+	defer conn.Write(utils.GetPrefix(conn.Name))
 
 	err := os.MkdirAll("./history/", 0o755)
 	if err != nil {

@@ -8,45 +8,45 @@ import (
 type User struct {
 	net.Conn
 	GroupName    string
-	UserName     string
+	Name         string
 	Changingname bool
 }
-type UsersMap map[string](*User)
+type usersMap map[string](*User)
 
-type SafeUsers struct {
+type users struct {
 	mu   sync.Mutex
-	List UsersMap
+	list usersMap
 }
 
-func (u *SafeUsers) AddUser(name string, conn *User) uint8 {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (s *Server) StoreUser(name string, conn *User) uint8 {
+	s.users.mu.Lock()
+	defer s.users.mu.Unlock()
 
-	_, exist := u.List[name]
+	_, exist := s.users.list[name]
 	if exist {
 		return 1
 	}
 
 	defer func() {
-		conn.UserName = name
+		conn.Name = name
 	}()
 
-	u.List[name] = conn
+	s.users.list[name] = conn
 	return 0
 }
 
-func (u *SafeUsers) DeleteUser(name string) {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (s *Server) DeleteUser(name string) {
+	s.users.mu.Lock()
+	defer s.users.mu.Unlock()
 
-	delete(u.List, name)
+	delete(s.users.list, name)
 }
 
-func (u *SafeUsers) Get(name string) *User {
-	u.mu.Lock()
-	defer u.mu.Unlock()
+func (s *Server) GetUser(name string) *User {
+	s.users.mu.Lock()
+	defer s.users.mu.Unlock()
 
-	v, ok := u.List[name]
+	v, ok := s.users.list[name]
 
 	if !ok {
 		return nil

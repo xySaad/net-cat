@@ -6,37 +6,39 @@ type null *struct{}
 
 type groupUsers map[string]null
 
-type Groups map[string]groupUsers
+type groupsMap map[string]groupUsers
 
-type SafeGroups struct {
-	mu   sync.Mutex
-	List Groups
+type groups struct {
+	sync.Mutex
+	list groupsMap
 }
 
-func (sg *SafeGroups) GetGroup(groupName string) groupUsers {
-	sg.mu.Lock()
-	defer sg.mu.Unlock()
-	return sg.List[groupName]
+func (s *Server) GetGroup(groupName string) groupUsers {
+	s.groups.Lock()
+	defer s.groups.Unlock()
+	return s.groups.list[groupName]
 }
 
-func (groups *SafeGroups) DeleteFromGroup(user *User) {
-	groups.mu.Lock()
-	defer groups.mu.Unlock()
-	_, ok := groups.List[user.GroupName]
+var Groups = groups{list: make(groupsMap)}
+
+func (s *Server) DeleteFromGroup(user *User) {
+	s.groups.Lock()
+	defer s.groups.Unlock()
+	_, ok := s.groups.list[user.GroupName]
 	if !ok || user.GroupName == "" {
 		return
 	}
-	delete(groups.List[user.GroupName], user.UserName)
+	delete(s.groups.list[user.GroupName], user.Name)
 }
 
-func (groups *SafeGroups) AddUser(groupName string, user *User) {
-	groups.mu.Lock()
-	defer groups.mu.Unlock()
+func (s *Server) AddUserToGroup(groupName string, user *User) {
+	s.groups.Lock()
+	defer s.groups.Unlock()
 
-	_, ok := groups.List[groupName]
+	_, ok := s.groups.list[groupName]
 	if !ok {
-		groups.List[groupName] = map[string]null{}
+		s.groups.list[groupName] = map[string]null{}
 	}
 	user.GroupName = groupName
-	groups.List[groupName][user.UserName] = nil
+	s.groups.list[groupName][user.Name] = nil
 }

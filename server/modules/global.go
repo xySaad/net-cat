@@ -7,3 +7,19 @@ const (
 	LeftStatus
 	NameChangedStatus
 )
+
+type Server struct {
+	groups groups
+	users  users
+}
+
+func NewServer() *Server {
+	return &Server{
+		groups: groups{
+			list: groupsMap{},
+		},
+		users: users{
+			list: usersMap{},
+		},
+	}
+}

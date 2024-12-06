@@ -8,24 +8,13 @@ import (
 	"os"
 )
 
-type Server struct {
-	groups modules.SafeGroups
-	users  modules.SafeUsers
-}
-
-func NewServer() *Server {
-	return &Server{
-		groups: modules.SafeGroups{
-			List: modules.Groups{},
-		},
-		users: modules.SafeUsers{
-			List: modules.UsersMap{},
-		},
-	}
+type TCPServer struct {
+	*modules.Server
 }
 
 func RunServer(adress string) error {
-	server := NewServer()
+	server := &TCPServer{Server: modules.NewServer()}
+
 	ln, err := net.Listen("tcp", adress)
 	if err != nil {
 		return err
@@ -42,7 +31,7 @@ func RunServer(adress string) error {
 	}
 }
 
-func (s *Server) HandleConnection(conn *modules.User) {
+func (s *TCPServer) HandleConnection(conn *modules.User) {
 	conn.Write([]byte("\033[2J\033[3J\033[H"))
 	conn.Write([]byte(modules.Bitri9))
 
@@ -53,8 +42,8 @@ func (s *Server) HandleConnection(conn *modules.User) {
 		return
 	}
 
-	conn.Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + conn.UserName + "\n"))
-	conn.Write(utils.GetPrefix(conn.UserName))
+	conn.Write([]byte("\033[F\033[2K[ENTER YOUR NAME]:" + conn.Name + "\n"))
+	conn.Write(utils.GetPrefix(conn.Name))
 
 	joined := s.JoinGroup(conn)
 	if !joined {
