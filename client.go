@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"slices"
 	"strings"
 	"sync"
 
@@ -130,6 +129,17 @@ func readconn(conn *net.Conn, g *gocui.Gui) {
 	readconn(conn, g)
 }
 
+func Sort(s []int) []int {
+	for i := 0; i < len(s)-1; i++ {
+		for j := i + 1; j < len(s); j++ {
+			if s[i] > s[j] {
+				s[i], s[j] = s[j], s[i]
+			}
+		}
+	}
+	return s
+}
+
 func Split(s string) []string {
 	e := []string{}
 	mapp := make(map[int]int)
@@ -155,7 +165,7 @@ func Split(s string) []string {
 		mapp[strings.Index(s[i:], "\x1b]0;")] = len("\x1b]0;")
 		slice = append(slice, strings.Index(s[i:], "\x1b[0m"))
 		mapp[strings.Index(s[i:], "\x1b[0m")] = len("\x1b[0m")
-		slices.Sort(slice)
+		slice = Sort(slice)
 		max := slice[len(slice)-1]
 		if max < 0 {
 			e = append(e, s[i:])
