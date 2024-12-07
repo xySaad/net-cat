@@ -3,10 +3,8 @@ package modules
 import (
 	"fmt"
 	"io"
-	"os"
-	_ "unsafe"
-
 	"net-cat/server/utils"
+	"os"
 )
 
 func (conn *User) RestoreHistory() {
