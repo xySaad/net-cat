@@ -29,9 +29,11 @@ func (s *Server) StoreUser(name string, conn *User) uint8 {
 
 	defer func() {
 		conn.Name = name
+		s.Info("connection", conn.RemoteAddr(), "stored as", conn.Name)
 	}()
 
 	s.users.list[name] = conn
+
 	return 0
 }
 

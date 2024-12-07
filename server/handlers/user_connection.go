@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -17,8 +16,9 @@ func (s *TCPServer) chat(conn *modules.User) error {
 			s.DeleteUser(conn.Name)
 			delete(s.GetGroup(conn.GroupName), conn.Name)
 			s.notify(conn, modules.LeftStatus)
+			s.Info("connection", conn.RemoteAddr(), "closed")
 		} else {
-			fmt.Fprintln(os.Stderr, "error reading from:", conn.RemoteAddr().String())
+			s.Error("error reading from:", conn.RemoteAddr())
 		}
 		return err
 	}
@@ -92,27 +92,28 @@ func (s *TCPServer) brodcast(conn *modules.User, msg []byte, msgPrefix bool) {
 }
 
 func (s *TCPServer) notify(conn *modules.User, status uint8, extra ...string) {
-	var msgStr string
-
+	var msgStr, prefix string
 	switch status {
 	case modules.JoinedStatus:
-		msgStr = "\033[38;2;0;184;30m" + conn.Name + " has joined our chat..."
+		prefix = "\033[38;2;0;184;30m"
+		msgStr = conn.Name + " has joined our chat..."
 
 	case modules.LeftStatus:
-		msgStr = "\033[38;2;255;0;0m" + conn.Name + " has left our chat..."
+		prefix = "\033[38;2;255;0;0m"
+		msgStr = conn.Name + " has left our chat..."
 
 	case modules.NameChangedStatus:
-		color := "\033[38;2;146;142;210m"
+		prefix = "\033[38;2;146;142;210m"
 		msg := " has changed his name to " + conn.Name
 		if len(extra) > 0 {
-			msgStr = color + extra[0] + msg
+			msgStr = extra[0] + msg
 		} else {
-			msgStr = color + "someone" + msg
+			msgStr = "someone" + msg
 		}
 	default:
 	}
 
-	msg := []byte(msgStr + "\n\033[0m")
+	msg := []byte(prefix + msgStr + "\n\033[0m")
 	s.brodcast(conn, msg, false)
 }
 
@@ -123,6 +124,9 @@ func (s *TCPServer) JoinGroup(conn *modules.User) bool {
 	if err != nil {
 		if err == io.EOF {
 			s.DeleteUser(conn.Name)
+			s.Info("connection", conn.RemoteAddr(), "closed")
+		} else {
+			s.Error("error reading from:", conn.RemoteAddr())
 		}
 		conn.Close()
 		return false
@@ -146,6 +150,7 @@ func (s *TCPServer) JoinGroup(conn *modules.User) bool {
 	groupName += "_" + strings.Split(conn.Conn.LocalAddr().String(), ":")[1]
 	s.AddUserToGroup(groupName, conn)
 	conn.Write([]byte("\033]0;" + groupName + "\a"))
+	s.Info(conn.RemoteAddr(), "joined group", conn.GroupName, "as", conn.Name)
 	return true
 }
 
@@ -158,8 +163,10 @@ func (s *TCPServer) Login(conn *modules.User, attempts uint8) bool {
 
 	nameB, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
-		if err != io.EOF {
-			fmt.Fprintln(os.Stderr, "error reading from1:", conn.RemoteAddr())
+		if err == io.EOF {
+			s.Info("connection", conn.RemoteAddr(), "closed")
+		} else {
+			s.Error("error reading from:", conn.RemoteAddr())
 		}
 		return false
 	}
@@ -194,7 +201,6 @@ func (s *TCPServer) Login(conn *modules.User, attempts uint8) bool {
 		return s.Login(conn, attempts+1)
 	}
 	conn.Name = name
-
 	return true
 }
 
@@ -209,6 +215,11 @@ func (s *TCPServer) ChangeName(conn *modules.User, try int) uint8 {
 	conn.Changingname = true
 	newNameB, err := utils.ReadInput(&conn.Conn)
 	if err != nil {
+		if err == io.EOF {
+			s.Info("connection", conn.RemoteAddr(), "closed")
+		} else {
+			s.Error("error reading from:", conn.RemoteAddr())
+		}
 		conn.Changingname = false
 		return 1
 	}
@@ -236,6 +247,9 @@ func (s *TCPServer) ChangeName(conn *modules.User, try int) uint8 {
 	}
 
 	defer s.notify(conn, modules.NameChangedStatus, conn.Name)
+	defer func(oldName string) {
+		s.Info(conn.RemoteAddr(), "changed his name from", oldName, "to", conn.Name)
+	}(conn.Name)
 
 	s.DeleteUser(conn.Name)
 	s.DeleteFromGroup(conn)
