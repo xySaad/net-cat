@@ -13,7 +13,7 @@ type TCPServer struct {
 }
 
 func RunServer(adress string) error {
-	server := &TCPServer{Server: modules.NewServer()}
+	server := &TCPServer{modules.NewServer()}
 
 	ln, err := net.Listen("tcp", adress)
 	if err != nil {
